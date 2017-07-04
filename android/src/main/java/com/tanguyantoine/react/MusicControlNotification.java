@@ -5,11 +5,14 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.NotificationCompat;
 import android.view.KeyEvent;
 import com.facebook.react.bridge.ReactApplicationContext;
+
+import static android.content.Context.POWER_SERVICE;
 
 public class MusicControlNotification {
 
@@ -21,6 +24,7 @@ public class MusicControlNotification {
 
     private int smallIcon;
     private NotificationCompat.Action play, pause, stop, next, previous;
+    private PowerManager.WakeLock wakeLock;
 
     public MusicControlNotification(ReactApplicationContext context) {
         this.context = context;
@@ -68,10 +72,18 @@ public class MusicControlNotification {
 
         // Finally show/update the notification
         NotificationManagerCompat.from(context).notify("MusicControl", 0, builder.build());
+
+        // Enable WakeLock
+        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                "MuzicaWakeLock");
+        wakeLock.acquire();
     }
 
     public void hide() {
         NotificationManagerCompat.from(context).cancel("MusicControl", 0);
+        wakeLock.release();
+
     }
 
     /**
