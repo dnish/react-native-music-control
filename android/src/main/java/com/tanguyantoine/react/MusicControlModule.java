@@ -217,6 +217,7 @@ public class MusicControlModule extends ReactContextBaseJavaModule implements Co
             artworkThread = new Thread(new Runnable() {
                 @Override
                 public void run() {
+                    if(md == null) return;
                     Bitmap bitmap = loadArtwork(artworkUrl, artworkLocal);
                     md.putBitmap(MediaMetadataCompat.METADATA_KEY_ART, bitmap);
                     nb.setLargeIcon(bitmap);
@@ -239,7 +240,7 @@ public class MusicControlModule extends ReactContextBaseJavaModule implements Co
 
     @ReactMethod
     public void updatePlayback(ReadableMap info) {
-        if(!init) init();
+        if(!init || pb == null) init();
 
         long updateTime;
         long elapsedTime;
