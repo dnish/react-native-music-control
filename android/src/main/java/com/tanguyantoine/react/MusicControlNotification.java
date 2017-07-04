@@ -1,5 +1,6 @@
 package com.tanguyantoine.react;
 
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
@@ -57,6 +58,7 @@ public class MusicControlNotification {
         // Notifications of playing music can't be removed
         builder.setOngoing(isPlaying);
         builder.setSmallIcon(smallIcon);
+        builder.setPriority(Notification.PRIORITY_MAX);
 
         // Open the app when the notification is clicked
         String packageName = context.getPackageName();
