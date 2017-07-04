@@ -82,7 +82,9 @@ public class MusicControlNotification {
 
     public void hide() {
         NotificationManagerCompat.from(context).cancel("MusicControl", 0);
-        wakeLock.release();
+        if(wakeLock != null) {
+            wakeLock.release();
+        }
 
     }
 
