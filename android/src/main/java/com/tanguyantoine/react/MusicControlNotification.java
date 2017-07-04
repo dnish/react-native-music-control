@@ -59,6 +59,7 @@ public class MusicControlNotification {
         builder.setOngoing(isPlaying);
         builder.setSmallIcon(smallIcon);
         builder.setPriority(Notification.PRIORITY_MAX);
+        builder.setVisibility(Notification.VISIBILITY_PUBLIC);
 
         // Open the app when the notification is clicked
         String packageName = context.getPackageName();
