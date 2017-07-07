@@ -13,8 +13,6 @@ import android.support.v7.app.NotificationCompat;
 import android.view.KeyEvent;
 import com.facebook.react.bridge.ReactApplicationContext;
 
-import static android.content.Context.POWER_SERVICE;
-
 public class MusicControlNotification {
 
     protected static final String REMOVE_NOTIFICATION = "music_control_remove_notification";
@@ -56,7 +54,7 @@ public class MusicControlNotification {
         if(next != null) builder.addAction(next);
 
         // Notifications of playing music can't be removed
-        builder.setOngoing(isPlaying);
+        builder.setOngoing(true); // Instead of isPlaying we set this always on true
         builder.setSmallIcon(smallIcon);
         builder.setPriority(Notification.PRIORITY_MAX);
         builder.setVisibility(Notification.VISIBILITY_PUBLIC);
@@ -66,28 +64,19 @@ public class MusicControlNotification {
         Intent openApp = context.getPackageManager().getLaunchIntentForPackage(packageName);
         builder.setContentIntent(PendingIntent.getActivity(context, 0, openApp, 0));
 
-        if(!isPlaying) {
+        /***if(!isPlaying) {
             // Remove notification
             Intent remove = new Intent(REMOVE_NOTIFICATION);
             remove.putExtra(PACKAGE_NAME, context.getApplicationInfo().packageName);
             builder.setDeleteIntent(PendingIntent.getBroadcast(context, 0, remove, PendingIntent.FLAG_UPDATE_CURRENT));
-        }
+        } ***/
 
         // Finally show/update the notification
         NotificationManagerCompat.from(context).notify("MusicControl", 0, builder.build());
-
-        // Enable WakeLock
-        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                "MuzicaWakeLock");
-        wakeLock.acquire();
     }
 
     public void hide() {
         NotificationManagerCompat.from(context).cancel("MusicControl", 0);
-        if(wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
 
     }
 
