@@ -13,6 +13,8 @@ import android.support.v7.app.NotificationCompat;
 import android.view.KeyEvent;
 import com.facebook.react.bridge.ReactApplicationContext;
 
+import java.util.ConcurrentModificationException;
+
 public class MusicControlNotification {
 
     protected static final String REMOVE_NOTIFICATION = "music_control_remove_notification";
@@ -72,7 +74,12 @@ public class MusicControlNotification {
         } ***/
 
         // Finally show/update the notification
-        NotificationManagerCompat.from(context).notify("MusicControl", 0, builder.build());
+        try {
+            NotificationManagerCompat.from(context).notify("MusicControl", 0, builder.build());
+        }
+        catch(ConcurrentModificationException e) {
+            // Catch the exception, caused @ https://app.bugsnag.com/nextoo/muzica-app/errors/59200cfa3f91810018623511?filters%5Bevent.since%5D%5B%5D=30d&filters%5Berror.status%5D%5B%5D=open
+        }
     }
 
     public void hide() {

@@ -271,15 +271,18 @@ public class MusicControlModule extends ReactContextBaseJavaModule implements Co
         isPlaying = pbState == PlaybackStateCompat.STATE_PLAYING || pbState == PlaybackStateCompat.STATE_BUFFERING;
         if (session.isActive()) notification.show(nb, isPlaying);
 
-        state = pb.build();
-        session.setPlaybackState(state);
 
-        session.setRatingType(ratingType);
+        if(pb != null) {
+            state = pb.build();
+            session.setPlaybackState(state);
 
-        if (remoteVolume) {
-            session.setPlaybackToRemote(volume.create(null, maxVol, vol));
-        } else {
-            session.setPlaybackToLocal(AudioManager.STREAM_MUSIC);
+            session.setRatingType(ratingType);
+
+            if (remoteVolume) {
+                session.setPlaybackToRemote(volume.create(null, maxVol, vol));
+            } else {
+                session.setPlaybackToLocal(AudioManager.STREAM_MUSIC);
+            }
         }
     }
 
