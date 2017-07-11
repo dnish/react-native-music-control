@@ -57,10 +57,16 @@ public class MusicControlNotification {
         if(next != null) { builder.addAction(next); nbControls++; }
 
         // Notifications of playing music can't be removed
+        builder.setWhen(0);
         builder.setOngoing(true); // Instead of isPlaying we set this always on true
         builder.setSmallIcon(smallIcon);
         builder.setPriority(Notification.PRIORITY_MAX);
-        builder.setVisibility(Notification.VISIBILITY_PUBLIC);
+
+        //If 5.0 >= set the controls to be visible on lockscreen
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
+            builder.setVisibility(Notification.VISIBILITY_PUBLIC);
+        }
+
 
         // Open the app when the notification is clicked
         String packageName = context.getPackageName();
@@ -83,7 +89,7 @@ public class MusicControlNotification {
             }
 
 
-            builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView());
+            builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(args));
         }
 
 
