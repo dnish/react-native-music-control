@@ -24,6 +24,7 @@ public class MusicControlNotification {
     private final ReactApplicationContext context;
 
     private int smallIcon;
+    private int nbControls;
     private NotificationCompat.Action play, pause, stop, next, previous;
     private PowerManager.WakeLock wakeLock;
 
@@ -49,11 +50,11 @@ public class MusicControlNotification {
     public void show(NotificationCompat.Builder builder, boolean isPlaying) {
         // Add the buttons
         builder.mActions.clear();
-        if(previous != null) builder.addAction(previous);
-        if(play != null && !isPlaying) builder.addAction(play);
-        if(pause != null && isPlaying) builder.addAction(pause);
-        if(stop != null) builder.addAction(stop);
-        if(next != null) builder.addAction(next);
+        if(previous != null) { builder.addAction(previous); nbControls++; }
+        if(play != null && !isPlaying) { builder.addAction(play); nbControls++; }
+        if(pause != null && isPlaying) { builder.addAction(pause); nbControls++; }
+        if(stop != null) { builder.addAction(stop); nbControls++; }
+        if(next != null) { builder.addAction(next); nbControls++; }
 
         // Notifications of playing music can't be removed
         builder.setOngoing(true); // Instead of isPlaying we set this always on true
@@ -72,6 +73,19 @@ public class MusicControlNotification {
             remove.putExtra(PACKAGE_NAME, context.getApplicationInfo().packageName);
             builder.setDeleteIntent(PendingIntent.getBroadcast(context, 0, remove, PendingIntent.FLAG_UPDATE_CURRENT));
         } ***/
+
+
+        //If 5.0 >= use MediaStyle
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
+            int[] args = new int[nbControls];
+            for (int i = 0; i < nbControls; ++i) {
+                args[i] = i;
+            }
+
+
+            builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView());
+        }
+
 
         // Finally show/update the notification
         try {
