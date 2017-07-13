@@ -227,9 +227,11 @@ public class MusicControlModule extends ReactContextBaseJavaModule implements Co
                         nb.setLargeIcon(bitmap);
                     }
 
-                    session.setMetadata(md.build());
-                    notification.show(nb, isPlaying);
-                    artworkThread = null;
+                    if(md != null) { // Testing if we need it here multiple times, got several issues with .build() on null reference
+                        session.setMetadata(md.build());
+                        notification.show(nb, isPlaying);
+                        artworkThread = null;
+                    }
                 }
             });
             artworkThread.start();
