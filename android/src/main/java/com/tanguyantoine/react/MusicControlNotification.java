@@ -15,8 +15,6 @@ import com.facebook.react.bridge.ReactApplicationContext;
 
 import java.util.ConcurrentModificationException;
 
-import static android.content.Context.POWER_SERVICE;
-
 public class MusicControlNotification {
 
     protected static final String REMOVE_NOTIFICATION = "music_control_remove_notification";
@@ -102,19 +100,10 @@ public class MusicControlNotification {
         catch(ConcurrentModificationException e) {
             // Catch the exception, caused @ https://app.bugsnag.com/nextoo/muzica-app/errors/59200cfa3f91810018623511?filters%5Bevent.since%5D%5B%5D=30d&filters%5Berror.status%5D%5B%5D=open
         }
-
-        // Enable WakeLock
-        PowerManager powerManager = (PowerManager) context.getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                "MuzicaWakeLock");
-        wakeLock.acquire();
     }
 
     public void hide() {
         NotificationManagerCompat.from(context).cancel("MusicControl", 0);
-        if(wakeLock != null && wakeLock.isHeld()) {
-            wakeLock.release();
-        }
 
     }
 
