@@ -394,7 +394,7 @@ public class MusicControlModule extends ReactContextBaseJavaModule implements Co
                 input.close();
 
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             Log.w("MusicControl", "Could not load the artwork", ex);
         }
 
