@@ -6,12 +6,14 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.NotificationCompat;
 import android.view.KeyEvent;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.ReadableMap;
+
+import java.util.Map;
 
 import java.util.ConcurrentModificationException;
 
@@ -22,78 +24,105 @@ public class MusicControlNotification {
     protected static final String PACKAGE_NAME = "music_control_package_name";
 
     private final ReactApplicationContext context;
+    private final MusicControlModule module;
 
     private int smallIcon;
-    private int nbControls;
-    private NotificationCompat.Action play, pause, stop, next, previous;
-    private PowerManager.WakeLock wakeLock;
+    private int nbControls; // Used for native media buttons
+    private int customIcon;
+    private NotificationCompat.Action play, pause, stop, next, previous, skipForward, skipBackward;
 
-    public MusicControlNotification(ReactApplicationContext context) {
+    public MusicControlNotification(MusicControlModule module, ReactApplicationContext context) {
         this.context = context;
+        this.module = module;
 
         Resources r = context.getResources();
         String packageName = context.getPackageName();
 
         // Optional custom icon with fallback to the play icon
-        smallIcon = r.getIdentifier("music-control-icon", "drawable", packageName);
+        smallIcon = r.getIdentifier("music_control_icon", "drawable", packageName);
         if(smallIcon == 0) smallIcon = r.getIdentifier("play", "drawable", packageName);
     }
 
-    public void updateActions(long mask) {
+    public synchronized void setCustomNotificationIcon(String resourceName) {
+        if(resourceName == null) {
+            customIcon = 0;
+            return;
+        }
+
+        Resources r = context.getResources();
+        String packageName = context.getPackageName();
+
+        customIcon = r.getIdentifier(resourceName, "drawable", packageName);
+    }
+
+    public synchronized void updateActions(long mask, Map<String, Integer> options) {
         play = createAction("play", "Play", mask, PlaybackStateCompat.ACTION_PLAY, play);
         pause = createAction("pause", "Pause", mask, PlaybackStateCompat.ACTION_PAUSE, pause);
         stop = createAction("stop", "Stop", mask, PlaybackStateCompat.ACTION_STOP, stop);
         next = createAction("next", "Next", mask, PlaybackStateCompat.ACTION_SKIP_TO_NEXT, next);
         previous = createAction("previous", "Previous", mask, PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS, previous);
+
+        if (options != null && options.containsKey("skipForward") && (options.get("skipForward") == 10 || options.get("skipForward") == 5 || options.get("skipForward") == 30)) {
+            skipForward = createAction("skip_forward_" + options.get("skipForward").toString(), "Skip Forward", mask, PlaybackStateCompat.ACTION_FAST_FORWARD, skipForward);
+        } else {
+            skipForward = createAction("skip_forward_10", "Skip Forward", mask, PlaybackStateCompat.ACTION_FAST_FORWARD, skipForward);
+        }
+
+        if (options != null && options.containsKey("skipBackward") && (options.get("skipBackward") == 10 || options.get("skipBackward") == 5 || options.get("skipBackward") == 30)) {
+            skipBackward = createAction("skip_backward_" + options.get("skipBackward").toString(), "Skip Backward", mask, PlaybackStateCompat.ACTION_REWIND, skipBackward);
+        } else {
+            skipBackward = createAction("skip_backward_10", "Skip Backward", mask, PlaybackStateCompat.ACTION_REWIND, skipBackward);
+        }
     }
 
-    public void show(NotificationCompat.Builder builder, boolean isPlaying) {
+    public synchronized void show(NotificationCompat.Builder builder, boolean isPlaying) {
         // Add the buttons
         builder.mActions.clear();
         if(previous != null) { builder.addAction(previous); nbControls++; }
+        if(skipBackward != null) { builder.addAction(skipBackward); nbControls++; }
         if(play != null && !isPlaying) { builder.addAction(play); nbControls++; }
         if(pause != null && isPlaying) { builder.addAction(pause); nbControls++; }
         if(stop != null) { builder.addAction(stop); nbControls++; }
         if(next != null) { builder.addAction(next); nbControls++; }
+        if(skipForward != null) { builder.addAction(skipForward); nbControls++; }
 
-        // Notifications of playing music can't be removed
-        builder.setWhen(0);
-        builder.setOngoing(true); // Instead of isPlaying we set this always on true
-        builder.setSmallIcon(smallIcon);
-        builder.setPriority(Notification.PRIORITY_MAX);
-
-        //If 5.0 >= set the controls to be visible on lockscreen
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
-            builder.setVisibility(Notification.VISIBILITY_PUBLIC);
+        // Set whether notification can be closed based on closeNotification control (default PAUSED)
+        if(module.notificationClose == MusicControlModule.NotificationClose.ALWAYS) {
+            builder.setOngoing(false);
+        } else if(module.notificationClose == MusicControlModule.NotificationClose.PAUSED) {
+            builder.setOngoing(isPlaying);
+        } else { // NotificationClose.NEVER
+            builder.setOngoing(true);
         }
 
+        builder.setSmallIcon(customIcon != 0 ? customIcon : smallIcon);
+
+        //If 5.0 >= set the controls to be visible on lockscreen
+         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
+            builder.setVisibility(Notification.VISIBILITY_PUBLIC);
+          }
 
         // Open the app when the notification is clicked
         String packageName = context.getPackageName();
         Intent openApp = context.getPackageManager().getLaunchIntentForPackage(packageName);
         builder.setContentIntent(PendingIntent.getActivity(context, 0, openApp, 0));
 
-        /***if(!isPlaying) {
-            // Remove notification
-            Intent remove = new Intent(REMOVE_NOTIFICATION);
-            remove.putExtra(PACKAGE_NAME, context.getApplicationInfo().packageName);
-            builder.setDeleteIntent(PendingIntent.getBroadcast(context, 0, remove, PendingIntent.FLAG_UPDATE_CURRENT));
-        } ***/
-
-
         //If 5.0 >= use MediaStyle
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
-            int[] args = new int[nbControls];
-            for (int i = 0; i < nbControls; ++i) {
-                args[i] = i;
-            }
+         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP){
+         int[] args = new int[nbControls];
+         for (int i = 0; i < nbControls; ++i) {
+           args[i] = i;
+         }
 
+         builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(args));
+         }
 
-            builder.setStyle(new NotificationCompat.MediaStyle().setShowActionsInCompactView(args));
-        }
+        // Remove notification
+        Intent remove = new Intent(REMOVE_NOTIFICATION);
+        remove.putExtra(PACKAGE_NAME, context.getApplicationInfo().packageName);
+        builder.setDeleteIntent(PendingIntent.getBroadcast(context, 0, remove, PendingIntent.FLAG_UPDATE_CURRENT));
 
-
-        // Finally show/update the notification
+   // Finally show/update the notification
         try {
             NotificationManagerCompat.from(context).notify("MusicControl", 0, builder.build());
         }
@@ -104,7 +133,6 @@ public class MusicControlNotification {
 
     public void hide() {
         NotificationManagerCompat.from(context).cancel("MusicControl", 0);
-
     }
 
     /**

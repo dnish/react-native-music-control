@@ -6,6 +6,7 @@
 
 import { NativeModules, NativeEventEmitter } from 'react-native';
 const NativeMusicControl = NativeModules.MusicControlManager;
+import resolveAssetSource from 'react-native/Libraries/Image/resolveAssetSource';
 
 /**
  * High-level docs for the MusicControl iOS API can be written here.
@@ -40,7 +41,12 @@ var MusicControl = {
     NativeMusicControl.enableBackgroundMode(enable)
   },
   setNowPlaying: function(info){
-    NativeMusicControl.setNowPlaying(info)
+    // Check if we have an ios asset from react style image require
+    if(info.artwork) {
+        info.artwork = resolveAssetSource(info.artwork) || info.artwork;
+    }
+
+    NativeMusicControl.setNowPlaying(info);
   },
   resetNowPlaying: function(){
     NativeMusicControl.resetNowPlaying()
@@ -48,9 +54,9 @@ var MusicControl = {
   enableControl: function(controlName, bool, options = {}){
     NativeMusicControl.enableControl(controlName, bool, options || {})
   },
-  handleCommand: function(commandName){
+  handleCommand: function(commandName, value){
     if(handlers[commandName]){
-      handlers[commandName]()
+      handlers[commandName](value)
     }
   },
   on: function(actionName, cb){
@@ -60,7 +66,7 @@ var MusicControl = {
     subscription = new NativeEventEmitter(NativeMusicControl).addListener(
       'RNMusicControlEvent',
       (event) => {
-        MusicControl.handleCommand(event.name)
+        MusicControl.handleCommand(event.name, event.value)
       }
     );
     handlers[actionName] = cb
@@ -71,7 +77,15 @@ var MusicControl = {
       subscription.remove()
       subscription = null;
     }
-  }
+  },
+  stopControl: function(){
+    if (subscription){
+      subscription.remove();
+    }
+    subscription = null;
+    handlers = {};
+    NativeMusicControl.stopControl();
+  } 
 };
 
-module.exports = MusicControl;
+export default MusicControl;
